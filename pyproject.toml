@@ -1,0 +1,27 @@
+[project]
+name = "Call_Me_Maybe"
+version = "1.0.0"
+description = "42 project Call_Me_Maybe"
+readme = "README.md"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "mypy>=1.19.1",
+    "poetry>=2.3.2",
+    "numpy>=2.2.6",
+    "pydantic (>=2.13.4,<3.0.0)",
+    "accelerate (>=1.13.0,<2.0.0)",
+    "llm-sdk>=1.0.1",
+]
+authors = [
+    {name = "npillet"}
+]
+license = "MIT"
+
+[dependency-groups]
+dev = [
+    "flake8>=7.3.0",
+    "mypy>=1.19.1",
+]
+
+[tool.uv.sources]
+llm_sdk = {path="./llm_sdk", editable = true}
