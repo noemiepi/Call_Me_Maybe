@@ -1,8 +1,11 @@
 from src.parser.arguments_parser import arg_parse
-from src.generator.generate import answer_generation
 from src.generator.prompt import Prompt
-from src.generator.llm import My_LLM
+from src.generator.llm import Call_Me_Maybe
 from src.generator.output import Output
+from src.generator.vocabulary import Vocab
+
+from typing import Any
+import time
 
 
 if __name__ == "__main__":
@@ -22,7 +25,7 @@ if __name__ == "__main__":
             exit()
 
         # Model loading
-        model = My_LLM()
+        model = Call_Me_Maybe()
         model.model_post_init(None)
 
         # Prompt gathering
@@ -33,20 +36,21 @@ if __name__ == "__main__":
         output = Output()
 
         # Prompt processing
+        start = time.time()
         while True:
             next_prompt = prompt_creator.get_next_prompt()
 
             if next_prompt is None:
                 break
 
-            answer_generation(next_prompt)
-            output.join_results(next_prompt, "test", {"param1": "test",
-                                                      "param2": "testbis"})
+            gen_output: dict[str, Any] = model.answer_generation(next_prompt)
+            output.join_results(gen_output)
 
+        end = time.time()
         output.write_output()
 
         print("Generation finished!")
-
+        print(f"Time taken: \033[1;94m{end-start:.2f}s\033[0m")
     # except Exception as e:
     #     print("\033[1;31mAn unexpected error occured:\n"
     #           f"-> {e}\033[0m")

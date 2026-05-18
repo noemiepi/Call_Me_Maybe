@@ -5,26 +5,21 @@ import json
 
 class Vocab(BaseModel):
     """
-    Goal
-    This class will will take every prompt from the input .json file
-    and store them inside a class object list to be called.
+    This class will will take every function from the input .json file
+    and store them inside a class object dictionnary to be called.
 
     Attribute:
-    - _create_function_list(self) -> list[str]
+      - _create_function_list(self) -> dict[str, str]
     """
-    vocab_list: list[str] = []
+    vocab_dict: dict[str, str] = {}
 
-    def _create_function_list(self) -> list[str]:
+    def _create_function_list(self) -> dict[str, str]:
         """
-        Goal
         By reading the .json file containing the functions,
         it will create a list isolating them.
 
-        Parameter:
-        - self
-
         Return
-        -> list[str]
+          -> dict[str, str]
         """
         path: str = "data/input/"
 
@@ -32,6 +27,7 @@ class Vocab(BaseModel):
             json_file: Any = json.load(f)
 
             for data in json_file:
-                self.vocab_list.append(str(data["name"]))
+                self.vocab_dict.update({str(data["name"]) :
+                                        str(data["parameters"])})
 
-        return self.vocab_list
+        return self.vocab_dict

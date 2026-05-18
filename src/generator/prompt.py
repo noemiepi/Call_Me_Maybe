@@ -5,27 +5,22 @@ import json
 
 class Prompt(BaseModel):
     """
-    Goal
     This class will will take every prompt from the input .json file
     and store them inside a class object list to be called.
 
     Attributes:
-    - get_next_prompt(self) -> str | None
-    - _create_prompt_list(self) -> None
+      - get_next_prompt(self) -> str | None
+      - _create_prompt_list(self) -> None
     """
     prompt_list: list[str] = []
 
     def get_next_prompt(self) -> str | None:
         """
-        Goal
         Using the prompt list, which is a class object, it will
         take the first prompt off of the list and return it.
 
-        Parameter:
-        - self
-
         Return
-        -> str | None
+          -> str | None
         """
         if not self.prompt_list:
             return None
@@ -34,15 +29,11 @@ class Prompt(BaseModel):
 
     def _create_prompt_list(self) -> None:
         """
-        Goal
         By reading the .json file containing the prompts,
         it will create a list isolating them.
 
-        Parameter:
-        - self
-
         Return
-        -> None
+          -> None
         """
         path: str = "data/input/"
 

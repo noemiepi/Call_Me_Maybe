@@ -3,7 +3,7 @@ __version__ = '1.0.0'
 
 # Class Objects
 from src.generator.prompt import Prompt
-from src.generator.llm import My_LLM
+from src.generator.llm import Call_Me_Maybe
 from src.generator.output import Output
 
-__all__ = ['Prompt', 'My_LLM', 'Output']
+__all__ = ['Prompt', 'Call_Me_Maybe', 'Output']

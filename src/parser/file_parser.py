@@ -3,6 +3,17 @@ import json
 
 
 def input_file_verification(file: str) -> str:
+    """
+    This function will check if the given input file is correctly
+    formatted. If it isn't, the function raise an error that will
+    be caught in the main program and stop it entirely.
+
+    Parameter:
+      - file: str
+
+    Return
+      -> str
+    """
     path = "data/input/"
     func_def_file = "data/input/functions_definition.json"
 
@@ -57,6 +68,17 @@ def input_file_verification(file: str) -> str:
 
 
 def output_file_verification(file: str) -> str:
+    """
+    This function will check if the output folder is present
+    and return a message informing that. If it isn't, the folder
+    will be created and the function returns a message saying so.
+
+    Parameter:
+      - file: str
+
+    Return
+      -> str
+    """
     path = "data/output/"
 
     if not os.path.isdir(path):

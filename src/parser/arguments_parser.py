@@ -4,6 +4,13 @@ from src.parser.file_parser import \
 
 
 def arg_parse() -> argparse.Namespace:
+    """
+    This function will create a few arguments the
+    user can use when launching the program.
+
+    Return
+      -> argparse.Namespace
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-f", "--functions_definition",

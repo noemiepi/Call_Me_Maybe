@@ -5,51 +5,36 @@ import json
 
 class Output(BaseModel):
     """
-    Goal
     This class will generate the output .json file with the prompt,
     the function's name and it's parameters.
 
     Attributes:
-    - join_results(self, prompt: str, func_name: str,
-                   parameters: dict[str, Any]) -> None
-    - write_output(self) -> None
+      - join_results(self, prompt: str, gen_output: dict[str, Any]) -> None
+      - write_output(self) -> None
     """
     result: list[Any] = []
 
-    def join_results(self, prompt: str, func_name: str,
-                     parameters: dict[str, Any]) -> None:
+    def join_results(self, gen_output: dict[str, Any]) -> None:
         """
-        Goal
         It joins the LLM generation's results inside a dictionary and
         appends it to the result object which is a list,
         making its type list[dict[str, Any]].
 
-        Parameters
-        - self
-        - prompt: str
-        - func_name: str
-        - parameters: dict[str, Any]
+        Parameter:
+          - gen_output: dict[str, Any]
 
         Return
-        -> None
+          -> None
         """
-        self.result.append({
-            "prompt": prompt,
-            "name": func_name,
-            "parameters": parameters
-        })
+        self.result.append(gen_output)
 
     def write_output(self) -> None:
         """
-        Goal
         Taking the class object (result), it will write it's content inside
         a .json file that is either created if non-existent or overwritten.
 
-        Parameter
-        - self
-
         Return
-        -> None
+          -> None
         """
         output_path = "data/output/function_calling_results.json"
 
