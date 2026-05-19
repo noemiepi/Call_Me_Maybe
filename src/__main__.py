@@ -2,9 +2,10 @@ from src.parser.arguments_parser import arg_parse
 from src.generator.prompt import Prompt
 from src.generator.llm import Call_Me_Maybe
 from src.generator.output import Output
-from src.generator.vocabulary import Vocab
+# from src.generator.vocabulary import Vocabulary
 
 from typing import Any
+
 import time
 
 
@@ -49,8 +50,12 @@ if __name__ == "__main__":
         end = time.time()
         output.write_output()
 
-        print("Generation finished!")
-        print(f"Time taken: \033[1;94m{end-start:.2f}s\033[0m")
+        # voc = Vocabulary()
+        # voc._create_function_list()
+        # print(voc.vocab_dict)
+
+        print("All generations completed!")
+        print(f"Total time: \033[1;94m{(end-start)/60:.2f}s\033[0m")
     # except Exception as e:
     #     print("\033[1;31mAn unexpected error occured:\n"
     #           f"-> {e}\033[0m")

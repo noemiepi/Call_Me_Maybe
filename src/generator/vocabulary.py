@@ -3,7 +3,7 @@ from typing import Any
 import json
 
 
-class Vocab(BaseModel):
+class Vocabulary(BaseModel):
     """
     This class will will take every function from the input .json file
     and store them inside a class object dictionnary to be called.
@@ -11,12 +11,31 @@ class Vocab(BaseModel):
     Attribute:
       - _create_function_list(self) -> dict[str, str]
     """
+    vocab_list: list[str] = []
     vocab_dict: dict[str, str] = {}
 
-    def _create_function_list(self) -> dict[str, str]:
+    def _create_function_list(self) -> list[str]:
         """
         By reading the .json file containing the functions,
         it will create a list isolating them.
+
+        Return
+          -> list[str]
+        """
+        path: str = "data/input/"
+
+        with open(f"{path}/functions_definition.json", 'r') as f:
+            json_file: Any = json.load(f)
+
+            for data in json_file:
+                self.vocab_list.append(str(data["name"]))
+
+        return self.vocab_list
+
+    def _create_function_dict(self) -> dict[str, str]:
+        """
+        By reading the .json file containing the functions,
+        it will create a dictionnary isolating them.
 
         Return
           -> dict[str, str]

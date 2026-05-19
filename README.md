@@ -32,7 +32,7 @@ Discuss accuracy, speed, and reliability of your solution
 Document difficulties encountered and how you solved them
 
 ## Testing strategy
- Describe how you validated your implementation
+Describe how you validated your implementation
 
 ## Example usage
 Provide clear examples of running your program
@@ -59,6 +59,6 @@ Provide clear examples of running your program
 ## Github
 - [Overtekk](https://github.com/Overtekk/Call_Me_Maybe/tree/main)
 
-- [naha7777](https://github.com/naha7777/Call_Me_Maybe/tree/main)
+- [Flipsbone](https://github.com/Flipsbone/Call-Me-Maybe-42)
 
-- [sousampere](https://github.com/sousampere/42_call_me_maybe_v1.2/tree/main)
+- [naha7777](https://github.com/naha7777/Call_Me_Maybe/tree/main)

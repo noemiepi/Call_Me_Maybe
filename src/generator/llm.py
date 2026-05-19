@@ -1,9 +1,11 @@
 from llm_sdk import Small_LLM_Model
-from src.generator.vocabulary import Vocab
+
+from src.generator.vocabulary import Vocabulary
+
 from pydantic import BaseModel, PrivateAttr
 from typing import Any
-import numpy
-from numpy.typing import NDArray
+
+import time
 
 
 class Call_Me_Maybe(BaseModel):
@@ -13,19 +15,26 @@ class Call_Me_Maybe(BaseModel):
 
     Attributes:
       - model_post_init(self, context: Any | None) -> None
-      - tokenization(self, prompt: str) -> str
-      - generate_function_name(self, prompt: str) -> str
-      - generate_parameters(self, function: str) -> dict[str, Any]
+      - answer_generation(self, prompt: str) -> dict[str, Any]
+      - gen_function_name(self) -> str
+      - gen_function_param(self, function: str) -> dict[str, Any]
     """
     _model: Small_LLM_Model = PrivateAttr()
-    _vocab: Vocab = PrivateAttr()
+    _vocab: Vocabulary = PrivateAttr()
 
     def model_post_init(self, context: Any | None) -> None:
-        self._model = Small_LLM_Model()
-        self._vocab = Vocab()
+        """
+        It finishes to initialize the model
+        with the necessary vocabulary.
 
-        # self.func_name = ""
-        # self.params = {}
+        Parameter:
+          - context: Any | None
+
+        Return
+          -> None
+        """
+        self._model = Small_LLM_Model()
+        self._vocab = Vocabulary()
 
     def answer_generation(self, prompt: str) -> dict[str, Any]:
         """
@@ -39,89 +48,71 @@ class Call_Me_Maybe(BaseModel):
         Return
           -> dict[str, Any]
         """
-        vocab_dict: dict[str, str] = self._vocab._create_function_list()
+        start: float = time.time()
+        # vocab_list: list[str] = self._vocab._create_function_list()
         output_result: dict[str, Any] = {}
 
         # Prompt
         output_result['prompt'] = prompt
 
         # Function name
-        func_name: str = self.generate_function_name(prompt, vocab_dict)
-        output_result['name'] = func_name
+        function_name: str = self.gen_function_name()
+        output_result['name'] = function_name
 
         # Function parameters
-        func_param: dict[str, Any] = self.generate_parameters(prompt)
-        output_result['parameters'] = func_param
+        function_param: dict[str, Any] = self.gen_function_param(function_name)
+        output_result['parameters'] = function_param
+
+        end: float = time.time()
 
         # Visualization
         print(prompt)
-        print(f">>> Function: {func_name}")
-        print(f">>> Parameters: {func_param}")
+        print(f">>> Function: {function_name}")
+        print(f">>> Parameters: {function_param}")
+        print(f"Generation time: \033[1;94m{(end-start)/60:.2f}s\033[0m")
         print()
 
         return output_result
 
-    def generate_function_name(self, prompt: str,
-                               func_dict: dict[str, str]) -> str:
+    def gen_function_name(self) -> str:
         """
         It chooses the correct function name to solve
-        the given prompt within the list of functions.
-
-        Parameters:
-          - prompt: str
-          - func_dict: dict[str, str]
+        the given prompt by passing through a State-Machine.
 
         Return
           -> str
         """
-        prompt_tensors: list[int] = self._model.encode(prompt)[0].tolist()
+        # Prompt for the llm
+        prompt: str = "Choose the best matching function that answers the " \
+                "prompt.\n"
 
-        # task = f"{prompt}"
-        task = "Task: Respond to every prompt with 'a'"
+        # State of the machine
+        state: str = ""
 
-        # task = "Your goal is to search the function in " \
-        # f"{funcs} that corresponds to the given prompt"
+        # Passing through the State-Machine
+        chosen_function = "bleh"
 
-        # task: dict[str, str] = func_dict
-        # task = f"\nResolve the following prompt: {prompt}\n"
+        return chosen_function
 
-        logits = self._model.get_logits_from_input_ids(prompt_tensors)
-
-        sorted_token = sorted(logits, reverse=True)
-
-        token = logits.index(sorted_token[0])
-
-        return self._model.decode(token)
-
-    def generate_parameters(self, prompt: str, func: str) -> dict[str, Any]:
+    def gen_function_param(self, function: str) -> dict[str, Any]:
         """
-        It chooses the correct function's parameters.
+        It chooses the correct function's parameters
+        and find them inside the prompt.
 
         Parameter:
-          - prompt: str
-          - func: str
+          - function: str
 
         Return
           -> dict[str, Any]
         """
-        return "function not build"
-        # task = "Your goal is to find the parameters of " \
-        # f"{self.func_name} inside the prompt"
+        # Prompt for the llm
+        prompt: str = "Choose the best matching function that answers the " \
+                "prompt.\n"
 
-        # if self.func_name == "fn_add_numbers":
-        #     '"parameters": {"a": "number", "b": "number"}'
+        # State of the machine
+        state: str = ""
 
-        # elif self.func_name == "fn_greet":
-        #     '"parameters": {"name": "string"}'
+        # Passing through the State-Machine
+        correct_parameters: dict[str, Any] = {"bla": "blu"}
 
-        # elif self.func_name == "fn_reverse_string":
-        #     '"parameters": {"s": "string"}'
-
-        # elif self.func_name == "fn_get_square_root":
-        #     '"parameters": {"a": "number"}'
-
-        # elif self.func_name == "fn_substitute_string_with_regex":
-        #     '"parameters": {"source_string": "string", "regex": "string",'
-        #     '"replacement": "string"}'
-
-        # return self.params
+        return correct_parameters

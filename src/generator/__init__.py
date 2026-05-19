@@ -5,5 +5,6 @@ __version__ = '1.0.0'
 from src.generator.prompt import Prompt
 from src.generator.llm import Call_Me_Maybe
 from src.generator.output import Output
+from src.generator.vocabulary import Vocabulary
 
-__all__ = ['Prompt', 'Call_Me_Maybe', 'Output']
+__all__ = ['Prompt', 'Call_Me_Maybe', 'Output', 'Vocabulary']
