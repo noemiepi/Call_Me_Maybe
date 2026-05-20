@@ -44,7 +44,7 @@ if __name__ == "__main__":
             if next_prompt is None:
                 break
 
-            gen_output: dict[str, Any] = model.answer_generation(next_prompt)
+            gen_output: dict[str, Any] = model.generated_answer(next_prompt)
             output.join_results(gen_output)
 
         end = time.time()

@@ -1,6 +1,9 @@
-from src.generator.vocabulary import Vocabulary
+from enum import Enum
 
-from pydantic import BaseModel
 
-class StateMachine(BaseModel):
-    pass
+class State(Enum):
+    FUNCTION = "function"
+    PARAMETER = "parameter"
+    STRPARAM = "str_param"
+    INTPARAM = "int_param"
+    FINAL = "final"
