@@ -7,7 +7,6 @@ from pydantic import BaseModel, PrivateAttr
 from typing import Any
 
 import numpy as np
-
 import time
 
 
@@ -26,6 +25,11 @@ class Call_Me_Maybe(BaseModel):
     _model: Small_LLM_Model = PrivateAttr()
     _vocab: Vocabulary = PrivateAttr()
 
+    path: str = ""
+    func_dict: list[str] = []
+    vocab_dict: dict[int, str] = {}
+    _functions_token: dict[str, list[int]] = {}
+
     def model_post_init(self, context: Any | None) -> None:
         """
         It finishes to initialize the model
@@ -39,6 +43,14 @@ class Call_Me_Maybe(BaseModel):
         """
         self._model = Small_LLM_Model()
         self._vocab = Vocabulary()
+
+        self.path = self._model.get_path_to_vocab_file()
+        self.func_dict = self._vocab._create_function_list()
+        self.vocab_dict = self._vocab.get_id_to_token_vocab(self.path)
+
+        for func in self.func_dict:
+            ids: list[int] = self._model.encode(func['name'])[0].tolist()
+            self._functions_token[func['name']] = ids
 
     def generated_answer(self, prompt: str) -> dict[str, Any]:
         """
@@ -54,56 +66,58 @@ class Call_Me_Maybe(BaseModel):
         """
         start: float = time.time()
         output_result: dict[str, Any] = {}
-        vocab_list: list[str] = self._vocab._create_function_list()
 
         # Prompt
         output_result['prompt'] = prompt
+        print(prompt)
 
         # Function name
-        function_name: str = self.gen_function_name(vocab_list)
+        function_name: str = self.gen_function_name(prompt)
         output_result['name'] = function_name
 
         # Function parameters
-        function_param: dict[str, Any] = self.gen_function_param(function_name,
-                                                                 vocab_list)
+        function_param: dict[str, Any] = self.gen_function_param(function_name)
         output_result['parameters'] = function_param
 
         end: float = time.time()
 
         # Visualization
-        print(prompt)
         print(f"-> Function: {function_name}")
         print(f"-> Parameters: {function_param}")
-        print(f"Generation time: \033[1;94m{(end-start)/60:.2f}s\033[0m")
         print()
+        print(f"Generation time: \033[1;94m{(end-start)/60:.2f}min\033[0m")
+        print("\n\n")
 
         return output_result
 
-    def gen_function_name(self, vocab_list: list[str]) -> str:
+    def gen_function_name(self, prompt: str) -> str:
         """
         It chooses the correct function name to solve
         the given prompt by passing through a State-Machine.
 
         Parameter:
+          - prompt: str
           - vocab_list: list[str]
 
         Return
           -> str
         """
         # Prompt for the llm
-        prompt: str = "Choose the best matching function in " \
-                      f"{vocab_list} that answers the prompt.\n"
+        llm_prompt: str = "You have access to these functions:\n"
+        for func in self.func_dict:
+            llm_prompt += f"- {func['name']}: {func['description']}\n"
+        llm_prompt += ("Which function need to be called to answer this:"
+                       f"{prompt}")
 
         # State of the machine
         state: State = State.FUNCTION
 
         # Passing through the State-Machine
-        chosen_function = self.generate(prompt, vocab_list, state, 100)
+        chosen_function: str = self.generate(llm_prompt, state)
 
         return chosen_function
 
-    def gen_function_param(self, function: str,
-                           vocab_list: list[str]) -> dict[str, Any]:
+    def gen_function_param(self, function: str) -> dict[str, Any]:
         """
         It chooses the correct function's parameters
         and find them inside the prompt.
@@ -116,48 +130,88 @@ class Call_Me_Maybe(BaseModel):
           -> dict[str, Any]
         """
         # Prompt for the llm
-        prompt: str = f"Choose the best matching function in {vocab_list} " \
-                      "that answers the prompt.\n"
+        llm_prompt: str = "Choose the best matching function in " \
+                      f"{self.func_dict} that answers the prompt.\n"
 
         # State of the machine
-        state: State = ""
+        state: State = State.PARAMETER
 
         # Passing through the State-Machine
+        # matching_parameters: str = self.generate(llm_prompt, state)
         matching_parameters: dict[str, Any] = {"bla": "blu"}
 
         return matching_parameters
 
-    def generate(self, prompt: str, vocab_list: list[str],
-                 state: State, max_tokens: int) -> str:
+    def generate(self, prompt: str, state: State) -> str:
+        """
+        It generates what is wanted depending
+        on the given state of the machine.
+
+        Parameters:
+          - prompt: str
+          - vocab_list: list[str]
+          - state: State
+
+        Return
+          -> str
+        """
         prompt_ids: list[int] = self._model.encode(prompt)[0].tolist()
 
         current_state: State = state
         current_token: list[int] = []
+        max_tokens: int = 100
 
         gen_output: str = ""
 
         for _ in range(max_tokens):
             all_token: list[int] = prompt_ids + current_token
+            logits: list[float] = self._model.get_logits_from_input_ids(
+                all_token)
 
             if state == State.FINAL:
+                # print("\nfinal state\n")
                 return gen_output
 
             if state == State.FUNCTION:
-                new_ids: list[int] = (
-                        self._model.encode(gen_output)[0].tolist())
-                prompt_ids.extend(new_ids)
+                valid_tokens: set[int] = set()
+                for func in self.func_dict:
+                    if func['name'].startswith(gen_output):
+                        new_token: list[int] = self._functions_token[
+                            func['name']]
+                        next_pos: int = len(current_token)
 
-            else:
-                logits: list[float] = self._model.get_logits_from_input_ids(
-                    all_token)
+                        if next_pos < len(new_token):
+                            valid_tokens.add(new_token[next_pos])
 
-                valid_token: set[int] = set()
-                # for func in vocab_list:
+                if not valid_tokens:
+                    # print("\nnot valid\n")
+                    break
 
-                sorted_token = sorted(logits, reverse=True)
+            # else:
+                logits_masked: np.NDArray[Any] = np.full_like(logits, -np.inf,
+                                                              dtype=float)
+                for token_id in valid_tokens:
+                    logits_masked[token_id] = logits[token_id]
 
-                token = logits.index(sorted_token[0])
+                # Select best token
+                best_token_id: int = int(np.argmax(logits_masked))
+                current_token.append(best_token_id)
 
-                return self._model.decode(token)
+                # Convert tokens into a string
+                token_string = self.vocab_dict.get(best_token_id, "")
+                token_string = (
+                    token_string.replace('\u2581', '').replace('\u0120', '')
+                )
+                gen_output += token_string
+
+                # Avoid infinite loop if token is empty
+                if not token_string:
+                    # print("\ninfinite loop\n")
+                    break
+
+                # Stop the loop if the name have been found
+                if any(func['name'] == gen_output for func in self.func_dict):
+                    # print("\nfound!\n")
+                    break
 
         return gen_output

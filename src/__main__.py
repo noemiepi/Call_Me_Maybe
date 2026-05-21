@@ -28,6 +28,7 @@ if __name__ == "__main__":
         # Model loading
         model = Call_Me_Maybe()
         model.model_post_init(None)
+        print("LLM initialized")
 
         # Prompt gathering
         prompt_creator = Prompt()
@@ -37,6 +38,7 @@ if __name__ == "__main__":
         output = Output()
 
         # Prompt processing
+        print("Starting generation...")
         start = time.time()
         while True:
             next_prompt = prompt_creator.get_next_prompt()
@@ -55,7 +57,7 @@ if __name__ == "__main__":
         # print(voc.vocab_dict)
 
         print("All generations completed!")
-        print(f"Total time: \033[1;94m{(end-start)/60:.2f}s\033[0m")
+        print(f"Total time: \033[1;94m{(end-start)/60:.2f}min\033[0m")
     # except Exception as e:
     #     print("\033[1;31mAn unexpected error occured:\n"
     #           f"-> {e}\033[0m")
