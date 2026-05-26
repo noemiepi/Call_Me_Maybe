@@ -6,4 +6,5 @@ class State(Enum):
     PARAMETER = "parameter"
     STRPARAM = "str_param"
     INTPARAM = "int_param"
+    DECODE = "decode"
     FINAL = "final"

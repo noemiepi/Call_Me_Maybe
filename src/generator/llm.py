@@ -4,7 +4,7 @@ from src.generator.vocabulary import Vocabulary
 from src.generator.state_machine import State
 
 from pydantic import BaseModel, PrivateAttr
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 import time
@@ -74,19 +74,25 @@ class Call_Me_Maybe(BaseModel):
         # Function name
         function_name: str = self.gen_function_name(prompt)
         output_result['name'] = function_name
+        print(f"-> Function: {function_name}")
 
         # Function parameters
-        function_param: dict[str, Any] = self.gen_function_param(function_name)
+        function_param: dict[str, Any] = self.gen_function_param(prompt,
+                                                                 function_name)
         output_result['parameters'] = function_param
 
         end: float = time.time()
 
         # Visualization
-        print(f"-> Function: {function_name}")
-        print(f"-> Parameters: {function_param}")
-        print()
-        print(f"Generation time: \033[1;94m{(end-start)/60:.2f}min\033[0m")
-        print("\n\n")
+        # print(f"-> Function: {function_name}")
+        print(f"-> Parameters: {function_param}\n")
+        sec = end-start
+        if sec > 60:
+            timer = time.strftime("%M.%S", time.gmtime(end-start))
+            print(f"Generation time: \033[1;94m{timer}min\033[0m\n\n")
+        else:
+            timer = time.strftime("%S", time.gmtime(end-start))
+            print(f"Generation time: \033[1;94m{timer}s\033[0m\n\n")
 
         return output_result
 
@@ -103,53 +109,62 @@ class Call_Me_Maybe(BaseModel):
           -> str
         """
         # Prompt for the llm
-        llm_prompt: str = "You have access to these functions:\n"
+        llm_prompt: str = ("You are a helpful function finder who has access "
+                           "to this list of functions:\n")
+
         for func in self.func_dict:
             llm_prompt += f"- {func['name']}: {func['description']}\n"
-        llm_prompt += ("Which function need to be called to answer this:"
-                       f"{prompt}")
+
+        llm_prompt += ("Which function needs to be called "
+                       "to answer this prompt: "
+                       f"{prompt} ?")
 
         # State of the machine
         state: State = State.FUNCTION
 
         # Passing through the State-Machine
-        chosen_function: str = self.generate(llm_prompt, state)
+        chosen_function: str = self.generate(llm_prompt, state, None)
 
         return chosen_function
 
-    def gen_function_param(self, function: str) -> dict[str, Any]:
+    def gen_function_param(self, prompt: str, function: str) -> dict[str, Any]:
         """
         It chooses the correct function's parameters
         and find them inside the prompt.
 
         Parameters:
+          - prompt: str
           - function: str
-          - vocab_list: list[str]
 
         Return
           -> dict[str, Any]
         """
+        parameters: dict[str, Any] = {}
         # Prompt for the llm
-        llm_prompt: str = "Choose the best matching function in " \
-                      f"{self.func_dict} that answers the prompt.\n"
+        llm_prompt: str = ("You are a helpful parameters who has access "
+                           "to this list of functions:\n")
+
+        for func in self.func_dict:
+            llm_prompt += f"- {func['name']}: {func['parameters']}\n"
+
+        llm_prompt += (f"Find the parameters of {function} inside this"
+                       f" {prompt} without solving it")
 
         # State of the machine
         state: State = State.PARAMETER
 
         # Passing through the State-Machine
-        # matching_parameters: str = self.generate(llm_prompt, state)
-        matching_parameters: dict[str, Any] = {"bla": "blu"}
+        matching_parameters: str = self.generate(llm_prompt, state, function)
 
         return matching_parameters
 
-    def generate(self, prompt: str, state: State) -> str:
+    def generate(self, prompt: str, state: State, function: None | str) -> str:
         """
-        It generates what is wanted depending
+        It generates what is wanted (prompt) depending
         on the given state of the machine.
 
         Parameters:
           - prompt: str
-          - vocab_list: list[str]
           - state: State
 
         Return
@@ -157,7 +172,6 @@ class Call_Me_Maybe(BaseModel):
         """
         prompt_ids: list[int] = self._model.encode(prompt)[0].tolist()
 
-        current_state: State = state
         current_token: list[int] = []
         max_tokens: int = 100
 
@@ -169,7 +183,6 @@ class Call_Me_Maybe(BaseModel):
                 all_token)
 
             if state == State.FINAL:
-                # print("\nfinal state\n")
                 return gen_output
 
             if state == State.FUNCTION:
@@ -183,11 +196,36 @@ class Call_Me_Maybe(BaseModel):
                         if next_pos < len(new_token):
                             valid_tokens.add(new_token[next_pos])
 
+                # Changes the machine's state
+                state = State.DECODE
+
+            if state == State.PARAMETER:
+                for func in self.func_dict:
+
+                    if func['name'] == function:
+
+                        for param_name, param_info in \
+                            func['parameters'].items():
+                            param_type = param_info['type']
+
+                            if param_type == "number":
+                                valid_tokens: set[int] = set()
+
+                            elif param_type == "string":
+                                valid_tokens: set[int] = set()
+
+                            elif param_type == "boolean":
+                                valid_tokens: set[int] = set()
+
+                            gen_output += f"{param_name}: {param_type}\n"
+
+                state = State.DECODE
+                print(f"\nParameter(s):\n{gen_output}")
+
+            else:
                 if not valid_tokens:
-                    # print("\nnot valid\n")
                     break
 
-            # else:
                 logits_masked: np.NDArray[Any] = np.full_like(logits, -np.inf,
                                                               dtype=float)
                 for token_id in valid_tokens:
@@ -206,12 +244,12 @@ class Call_Me_Maybe(BaseModel):
 
                 # Avoid infinite loop if token is empty
                 if not token_string:
-                    # print("\ninfinite loop\n")
                     break
 
-                # Stop the loop if the name have been found
+                # Change the states of the machine
                 if any(func['name'] == gen_output for func in self.func_dict):
-                    # print("\nfound!\n")
-                    break
+                    state = State.FINAL
+                else:
+                    state = State.FUNCTION
 
-        return gen_output
+        return "outside loop"
