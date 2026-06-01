@@ -11,9 +11,9 @@ class Vocabulary(BaseModel):
 
     Attribute:
       - get_id_to_token_vocab(self, path: str) -> dict[int, str]
-      - _create_function_list(self) -> dict[str, str]
+      - _create_function_list(self) -> list[dict[str, str]]
     """
-    vocab_list: list[str] = []
+    vocab_list: list[dict[str, Any]] = []
 
     def get_id_to_token_vocab(self, path: str) -> dict[int, str]:
         """
@@ -39,13 +39,13 @@ class Vocabulary(BaseModel):
                   f"-> {e}\033[0m")
             exit()
 
-    def _create_function_list(self) -> list[str]:
+    def _create_function_list(self) -> list[dict[str, Any]]:
         """
         By reading the .json file containing the functions,
         it will create a list isolating them.
 
         Return
-          -> list[str]
+          -> list[dict[str, Any]]
         """
         path: str = "data/input/"
 

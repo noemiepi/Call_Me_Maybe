@@ -56,9 +56,14 @@ Provide clear examples of running your program
 ### LLM State-Machine
 - https://github.com/MLConvexAI/LLM-State-Machine
 
+### REGEX
+- https://medium.com/@victoriousjvictor/understanding-regular-expressions-regex-e1c048f5aa6c
+
 ## Github
-- [Overtekk](https://github.com/Overtekk/Call_Me_Maybe/tree/main)
+- [Overtekk](https://github.com/Overtekk/Call_Me_Maybe)
 
 - [Flipsbone](https://github.com/Flipsbone/Call-Me-Maybe-42)
 
-- [naha7777](https://github.com/naha7777/Call_Me_Maybe/tree/main)
+- [naha7777](https://github.com/naha7777/Call_Me_Maybe)
+
+- [saeedehAsheri](https://github.com/saeedehAsheri/CallMeMaybe)
