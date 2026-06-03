@@ -25,12 +25,18 @@ class Call_Me_Maybe(BaseModel):
       - find_parameters(self, param_name: str, param_type: str, prompt: str,
                         output: str, loop: int) -> Any
     """
+    # Class
     _model: Small_LLM_Model = PrivateAttr()
     _vocab: Vocabulary = PrivateAttr()
 
+    # Pattern
     _nb_pattern: Pattern[Any] = PrivateAttr()
     _quote_pattern: Pattern[Any] = PrivateAttr()
+    _prompt_in: Pattern[Any] = PrivateAttr()
+    _prompt_with: Pattern[Any] = PrivateAttr()
+    _regex_keywords: dict[str, str] = {}
 
+    # Vocabulary
     path: str = ""
     func_dict: list[dict[str, Any]] = []
     vocab_dict: dict[int, str] = {}
@@ -47,12 +53,21 @@ class Call_Me_Maybe(BaseModel):
         Return
           -> None
         """
+        # Class
         self._model = Small_LLM_Model()
         self._vocab = Vocabulary()
 
+        # Pattern
         self._nb_pattern = re.compile(r"-?\d+(?:\.\d+)?")
-        self._quote_pattern = re.compile(r"['\"]('*|\"*)['\"]")
+        self._quote_pattern = re.compile(r"'[^']*'|\"[^\"]*\"")
+        self._prompt_in = re.compile(r"\bin\s+('[^']*'|\"[^\"]*\")")
+        self._prompt_with = re.compile(r"\bwith\s+('*[^']*'*|\"*[^\"]*\"*)")
+        self._regex_keywords = ["letters", "vowels", "consonants",
+                                "uppercases", "lowercases", "numbers",
+                                "digits", "spaces", "whitespaces",
+                                "punctuations"]
 
+        # Vocabulary
         self.path = self._model.get_path_to_vocab_file()
         self.func_dict = self._vocab._create_function_list()
         self.vocab_dict = self._vocab.get_id_to_token_vocab(self.path)
@@ -152,22 +167,20 @@ class Call_Me_Maybe(BaseModel):
         parameters: dict[str, Any] = {}
 
         # Prompt for the llm
-        llm_prompt: str = ("You are a function selector. You have this user "
-                           f"request: {prompt}.\nYou have this function:\n")
+        # llm_prompt: str = ("Task: You are a function selector. "
+        #                    "Given a user request, extract the explicit values "
+        #                    "from the user request to populate the parameters. "
+        #                    "Do NOT solve the problem or calculate the answer."
+        #                    " Only extract the arguments.")
 
-        for func in self.func_dict:
-            if func['name'] == function:
-                llm_prompt += (f" {func['name']}.\n"
-                               "Here are the parameters you need to find:\n"
-                               f"{func['parameters']}.\n"
-                               "And this is a description of what the "
-                               "function does:\n"
-                               f"{func['description']}\n")
+        # for func in self.func_dict:
+        #     if func['name'] == function:
+        #         llm_prompt += f"{func['name']}:\n"
 
-        llm_prompt += ("With that, extract the explicit values from the "
-                       "prompt to replace the type of the parameter by the "
-                       "corresponding argument in the prompt.\n"
-                       "Do NOT solve the prompt.")
+        #     for param_name, param_type in func['parameters'].items():
+        #         llm_prompt += f"{param_name} ({param_type['type']})\n"
+
+        # llm_prompt += f"User request: {prompt}."
 
         # State of the Machine
         state: State = State.PARAMETER
@@ -204,7 +217,8 @@ class Call_Me_Maybe(BaseModel):
 
         current_token: list[int] = []
         max_tokens: int = 100
-        loop: int = -1
+        i_int: int = -1
+        i_str: int = -1
 
         gen_output: str = ""
 
@@ -213,6 +227,8 @@ class Call_Me_Maybe(BaseModel):
 
             logits: list[float] = self._model.get_logits_from_input_ids(
                 all_token)
+
+            best_token_id: int = int(np.argmax(logits))
 
             if state == State.FINAL:
                 return gen_output
@@ -237,40 +253,41 @@ class Call_Me_Maybe(BaseModel):
                 for token_id in valid_tokens:
                     logits_masked[token_id] = logits[token_id]
 
-                best_token_id: int = int(np.argmax(logits_masked))
+                best_token_id = int(np.argmax(logits_masked))
 
                 # Changes the machine's state
                 state = State.DECODE
 
             if state == State.PARAMETER:
-                best_token_id = int(np.argmax(logits))
-
                 for func in self.func_dict:
                     if func['name'] == function:
 
                         for par_name, par_info in func['parameters'].items():
                             par_type = par_info['type']
-                            loop += 1
 
                             # Find the int and float type of parameters
                             if par_type == "number" or par_type == "integer":
+                                i_int += 1
+
                                 gen_output = self.find_parameters(par_name,
                                                                   par_type,
                                                                   prompt,
                                                                   gen_output,
-                                                                  loop)
+                                                                  i_int)
 
-                                if len(func['parameters']) - 1 == loop:
+                                if len(func['parameters']) - 1 == i_int:
                                     return gen_output
 
                             if par_type == "string":
+                                i_str += 1
+
                                 gen_output = self.find_parameters(par_name,
                                                                   par_type,
                                                                   prompt,
                                                                   gen_output,
-                                                                  loop)
+                                                                  i_str)
 
-                                if len(func['parameters']) - 1 == loop:
+                                if len(func['parameters']) - 1 == i_str:
                                     return gen_output
 
                             if par_type == "boolean":
@@ -310,7 +327,7 @@ class Call_Me_Maybe(BaseModel):
         return gen_output
 
     def find_parameters(self, param_name: str, param_type: str, prompt: str,
-                        output: str, loop: int) -> Any:
+                        output: str, i: int) -> Any:
         """
         It searchs the wanted parameters directly inside the prompt
         depending on its type.
@@ -320,15 +337,17 @@ class Call_Me_Maybe(BaseModel):
           - param_type: str
           - prompt: str
           - output: str
-          - loop: int
+          - i: int
 
         Return
           -> Any
         """
+        found_param: Any = ""
+
         if param_type == "number" or param_type == "integer":
             # Search the number(s) inside the prompt and makes a list
-            result_list: list[Any] = self._nb_pattern.findall(prompt)
-            found_param: Any = result_list[loop]
+            results: list[Any] = self._nb_pattern.findall(prompt)
+            found_param = results[i]
 
             # Try to convert the number into a float
             if param_type == "number":
@@ -358,29 +377,41 @@ class Call_Me_Maybe(BaseModel):
             # Search the strings inside the prompt and makes a list
             quoted: list[Any] = self._quote_pattern.findall(prompt)
 
-            print(quoted)
+            if param_name == "source_string":
+                match_in: list[Any] = self._prompt_in.search(prompt)
+                if match_in:
+                    found_param = match_in.group(1)
 
-            if quoted:
-                if len(quoted) > loop:
-                    found_param = quoted[loop]
+            elif param_name == "replacement":
+                match_rep: list[Any] = self._prompt_with.search(prompt)
+                if match_rep:
+                    found_param = match_rep.group(1)
+
+            elif param_name == "regex":
+                prompt_lower = prompt.lower()
+                found_param = next(keyword for keyword in self._regex_keywords
+                                   if keyword in prompt_lower)
+
+            elif quoted:
+                if len(quoted) > i:
+                    found_param = quoted[i]
 
                 else:
                     quoted[-1]
 
             else:
                 words = prompt.split()
-                found_param = words[-1].strip("?.,!'\"")
+                found_param = words[-1]
 
-            result_list = [found_param]
-            print(result_list)
+            results = [found_param]
+            found_param = found_param.strip("?.,!'\"")
+            print(results)
 
-        # Add the new value to the output and returns it
-        if len(result_list) - 1 >= loop:
-            if output == "":
-                output += (f"{param_name}: {found_param}")
+        if output == "":
+            output += (f"{param_name}: {found_param}")
 
-            else:
-                output += (f", {param_name}: {found_param}")
+        else:
+            output += (f", {param_name}: {found_param}")
 
         return output
 
