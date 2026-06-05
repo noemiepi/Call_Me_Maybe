@@ -16,7 +16,7 @@ class Vocabulary(BaseModel):
       - find_int_parameters(self, prompt: str) -> list[Any]:
       - find_str_parameters(self, prompt: str) -> list[Any]:
     """
-    _vocab_list: dict[str, Any] = PrivateAttr()
+    _vocab_list: list[dict[str, Any]] = PrivateAttr()
 
     # Pattern
     _nb_pattern: Pattern[Any] = PrivateAttr()
@@ -51,7 +51,7 @@ class Vocabulary(BaseModel):
                   f"-> {e}\033[0m")
             exit()
 
-    def _create_function_list(self) -> dict[str, Any]:
+    def _create_function_list(self) -> list[dict[str, Any]]:
         """
         By reading the .json file containing the functions,
         it will create a list isolating them.
@@ -100,6 +100,7 @@ class Vocabulary(BaseModel):
 
         for value in quoted:
             if value not in candidates:
+                value.strip("?.,!'\"")
                 candidates.append(value)
 
         return candidates
