@@ -14,46 +14,68 @@ Our objective is to have a 99%+ reliability with that same kind of model.<br>
 We can achieve this with **constrained decoding**. It is a technique that guides the model's output token-by-token to garantee a valid structure, without relying solely on prompting.
 
 ## Instructions
+The program is able to run when those commands are entered inside the terminal.
+``` bash
+make # Runs the program after installing the necessary depedencies
 
-```bash
-uv run python -m src [--functions_definition <function_definition_file>] [--input <input_file>] [--output <output_file>]
+uv run python -m src # Runs the program with the default parameters
 ```
 
+If you want to specify the files, use the template below:
+```bash
+uv run python -m src [--functions_definition <path_to_function_definition_file>] [--input <path_to_input_file>] [--output <path_to_output_file>]
+```
+
+**The flags:**
+| Flags | Explanation |
+| --- | --- |
+| `-f` or `--functions_definition` | Adds the path to the function definition file |
+| `-i` or `--input` | Adds the path to the prompt file |
+| `-o` or `--output` | Adds the path to the prompt answers file |
+
+Here is the same template with the default parameters:
 ``` bash
 uv run python -m src --functions_definition data/input/functions_definition.json --input data/input/function_calling_tests.json --output data/output/function_calls.json
 ```
 
-``` bash
-uv run python -m src
-```
-
 ## Explanation and justification
-
-### Algorithm explanation
-Describe your constrained decoding approach in detail
+### Algorithm
+*Describe your constrained decoding approach in detail*
 
 ### Design decisions
-Explain key choices in your implementation
+I decided to use a State Machine for the generation of the function name and the parameters section of the output file.
+
+It is composed of four state:
+| State | Explanation |
+| --- | --- |
+| FUNCTION | When searching the function' token |
+| PARAMETER | When searching the parameters' token |
+| DECODE | When decoding the previous token |
+| FINAL | When either the function or parameters are found |
+
+*Explain key choices in your implementation*
 
 ### Performance analysis
-Discuss accuracy, speed, and reliability of your solution
+*Discuss accuracy, speed, and reliability of your solution*
 
 ### Challenges faced
-Document difficulties encountered and how you solved them
+- Correctly find the desired function, mostly with `fn_substitute_string_with_regex`.<br>
+I managed to solve the problem by modifying the prompt given to the llm.
+
+- Find and complete every parameters of a function when it had more than one.<br>
+(Still working on it)
+
+*Document difficulties encountered and how you solved them*
 
 ### Testing strategy
-Describe how you validated your implementation
+*Describe how you validated your implementation*
 
 ### Example usage
-Provide clear examples of running your program
-
-
+*Provide clear examples of running your program*
 
 
 ## Resources
-
 ### Notions:
-
 #### Parsing
 - https://docs.python.org/3/library/argparse.html
 

@@ -21,11 +21,13 @@ class Vocabulary(BaseModel):
     # Pattern
     _nb_pattern: Pattern[Any] = PrivateAttr()
     _quote_pattern: Pattern[Any] = PrivateAttr()
+    _greet_pattern: Pattern[Any] = PrivateAttr()
 
     def __init__(self) -> None:
         # Pattern
         self._nb_pattern = re.compile(r"-?\d+(?:\.\d+)?")
         self._quote_pattern = re.compile(r"'[^']*'|\"[^\"]*\"")
+        self._greet_pattern = re.compile(r'\b(?:greet|Greet|GREET)\s+(\w+)')
 
     def get_id_to_token_vocab(self, path: str) -> dict[int, str]:
         """
@@ -92,30 +94,28 @@ class Vocabulary(BaseModel):
         Return
           -> Any
         """
-        # found_param: Any = ""
         candidates: list[Any] = []
 
-        # Searches the quoted strings inside the prompt and makes a list
+        # Searches the name after the word greet and adds it to the list
+        greeting: list[Any] = self._greet_pattern.findall(prompt)
+
+        for value in greeting:
+            if value not in candidates:
+                candidates.append(value)
+
+        # Searches the quoted strings and adds it to the list
         quoted: list[Any] = self._quote_pattern.findall(prompt)
 
         for value in quoted:
             if value not in candidates:
-                value.strip("?.,!'\"")
-                candidates.append(value)
+                candidates.append(value.strip("?.,!'\""))
+
+        # words: list[Any] = prompt.strip().split()
+        # if words:
+        #     last_word = words[-1].strip("?.,!'\"")
+        #     print(last_word)
+        #     if last_word and not self._nb_pattern.match(last_word):
+        #         if last_word not in candidates:
+        #             candidates.append(last_word)
 
         return candidates
-
-        # if quoted:
-        #     if len(quoted) > i:
-        #         found_param = quoted[i]
-
-        #     else:
-        #         quoted[-1]
-
-        # else:
-        #     words = prompt.split()
-        #     found_param = words[-1]
-
-        # results = [found_param]
-        # found_param = found_param.strip("?.,!'\"")
-        # print(results)

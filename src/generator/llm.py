@@ -19,7 +19,13 @@ class Call_Me_Maybe(BaseModel):
       - model_post_init(self, context: Any | None) -> None
       - generated_answer(self, prompt: str) -> dict[str, Any]
       - generate(self, prompt: str, state: State,
-                 function: str | None = None) -> str:
+                 function: str | None = None) -> str
+      - _valid_token(self, par_type: str, nb_cand: list[str] | None,
+                     str_cand: list[str] | None, gen_output: str) -> list[int]
+      - change_state(self, gen_output: str, function: str | None,
+                     par_list: list[str], nb_cand: list[str] | None,
+                     str_cand: list[str] | None,
+                     state: State) -> tuple[State, Any]
     """
     # Class
     _model: Small_LLM_Model = PrivateAttr()
@@ -186,6 +192,7 @@ class Call_Me_Maybe(BaseModel):
         filled_par: str = ""
         par_type: str = ""
         par_list: list[str] = []
+        par_time: int = 0
 
         gen_output: str = ""
 
@@ -215,23 +222,30 @@ class Call_Me_Maybe(BaseModel):
 
             if state == State.PARAMETER:
                 if function is None:
-                    return "pas fonction (je vais oublier de retirer ca)"
+                    return "No function provided"
 
                 for func in self._func_dict:
                     if func['name'] == function:
-                        for p_name, p_type in func['parameters'].items():
-                            if p_type != par_type:
-                                par_type = p_type.get('type')
-                                valid_tokens = self._valid_token(
-                                                                 par_type,
-                                                                 nb_cand,
-                                                                 str_cand,
-                                                                 gen_output
-                                                                )
+                        if par_time == 0:
+                            for p_name, p_type in func['parameters'].items():
                                 if p_name not in par_list:
                                     par_list.append(p_name)
                                     for type, par_type in p_type.items():
                                         par_list.append(par_type)
+                                par_time += 1
+
+                        if par_list is not []:
+                            for p_name, p_type in func['parameters'].items():
+                                if p_type != par_type:
+                                    par_type = p_type.get('type')
+                                    valid_tokens = self._valid_token(
+                                                                     par_type,
+                                                                     nb_cand,
+                                                                     str_cand,
+                                                                     gen_output
+                                                                    )
+
+                print(par_list)
 
                 # Changes the machine's state
                 state = State.DECODE
@@ -239,7 +253,7 @@ class Call_Me_Maybe(BaseModel):
             # Decodes what was previously encoded
             if state == State.DECODE:
                 if not valid_tokens:
-                    print("ici?")
+                    print("No valid token")
                     break
 
                 logits_masked: np.NDArray[Any] = np.full_like(logits, -np.inf,
@@ -260,23 +274,24 @@ class Call_Me_Maybe(BaseModel):
                 )
 
                 if not clean_string:
-                    print("c la?")
+                    print("No clean string")
                     break
 
                 gen_output += clean_string
 
-                state, filled_par = self.change_state(gen_output,
-                                                      function,
-                                                      par_list,
-                                                      nb_cand,
-                                                      str_cand,
-                                                      state)
+                state, filled_par, par_list = self.change_state(gen_output,
+                                                                function,
+                                                                par_list,
+                                                                nb_cand,
+                                                                str_cand,
+                                                                state)
 
         return "Failed to generate an answer"
 
-    def change_state(self, gen_output: str, function: str, par_list: list[str],
-                     nb_cand: list[str], str_cand: list[str],
-                     state: State) -> tuple[State, Any]:
+    def change_state(self, gen_output: str, function: str | None,
+                     par_list: list[str], nb_cand: list[str] | None,
+                     str_cand: list[str] | None,
+                     state: State) -> tuple[State, Any, Any]:
         """
         Changes the state of the machine to either FUNCTION,
         PARAMETER or FINAL depending on if it found what is searched.
@@ -290,19 +305,18 @@ class Call_Me_Maybe(BaseModel):
           - str_cand: list[str]
 
         Return
-          -> tuple[State, Any]
+          -> tuple[State, Any, Any]
         """
         par_output: str = ""
-        state: State
         i: int = 0
 
         # During the function search
         if function is None:
             if not any(func['name'] == gen_output for func in self._func_dict):
-                return State.FUNCTION, None
+                return State.FUNCTION, None, None
 
             else:
-                return State.FINAL, None
+                return State.FINAL, None, None
 
         # During the parameters search
         else:
@@ -315,8 +329,14 @@ class Call_Me_Maybe(BaseModel):
                 if str_cand is not None and gen_output not in str_cand:
                     state = State.PARAMETER
                 else:
-                    par_output += gen_output
-                    state = State.FINAL
+                    if len(par_list) > 2:
+                        par_output += f"{gen_output}, "
+                        par_list.pop(0)
+                        par_list.pop(0)
+                        state = State.PARAMETER
+                    else:
+                        par_output += gen_output
+                        state = State.FINAL
 
             # if par_type == "integer":
             #     if nb_cand is not None and gen_output not in nb_cand:
@@ -338,7 +358,6 @@ class Call_Me_Maybe(BaseModel):
                 else:
                     if len(par_list) > 2:
                         par_output += f"{float(gen_output)}, "
-                        print(f"nb_cand {nb_cand.pop(0)} degage.")
                         par_list.pop(0)
                         par_list.pop(0)
                         state = State.PARAMETER
@@ -351,33 +370,7 @@ class Call_Me_Maybe(BaseModel):
 
             print(par_output)
 
-            return state, par_output
-
-        # if par_type == "string":
-        #     pass
-
-        # if par_type == "number":
-        #     if len(nb_cand) > i:
-        #         if nb_cand[i] == gen_output:
-        #             output += f'"{par_name}": "{gen_output}", '
-        #             state = State.PARAMETER
-        #             i += 1
-
-        #     if len(nb_cand) - 1 == i:
-        #         if nb_cand[i] == gen_output:
-        #             output += f'"{par_name}": "{gen_output}"'
-        #             output += "}"
-        #             state = State.FINAL
-        #             final_output = json.loads(output)
-
-        #     else:
-        #         state = State.PARAMETER
-
-        # if par_type == "boolean":
-        #     pass
-
-    # renvois un tuple avec state et gen_output
-    # (deja converti quand c'est un param)
+            return state, par_output, par_list
 
     def _valid_token(self, par_type: str, nb_cand: list[str] | None,
                      str_cand: list[str] | None, gen_output: str) -> list[int]:
@@ -421,6 +414,8 @@ class Call_Me_Maybe(BaseModel):
                         break
 
             elif par_type == "boolean":
+                if clean in ("true", "false"):
+                    token_lst.append(token_id)
                 print("bool")
 
         return token_lst
