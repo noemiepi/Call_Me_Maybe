@@ -86,6 +86,12 @@ class Call_Me_Maybe(BaseModel):
         start: float = time.time()
 
         # Prompt
+        if prompt == "" or prompt is None:
+            output_result['prompt'] = prompt
+            output_result['name'] = "No function"
+            output_result['parameters'] = "No parameters"
+            print("Empty prompt")
+            return output_result
         output_result['prompt'] = prompt
         print(f"{prompt}\n")
 
