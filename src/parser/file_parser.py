@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 
 def input_file_verification(file: str) -> str:
@@ -16,6 +16,7 @@ def input_file_verification(file: str) -> str:
     """
     path = "data/input/"
     func_def_file = "data/input/functions_definition.json"
+    prompt_file = "data/input/function_calling_tests.json"
 
     try:
         if not os.path.isdir(path):
@@ -40,14 +41,14 @@ def input_file_verification(file: str) -> str:
                     f"JSON file is not properly formatted:\n {e}"
                     )
 
-        if not os.path.isfile(file):
+        if not os.path.isfile(prompt_file):
             raise ValueError(
                 "'function_calling_tests.json' file does not exist."
             )
 
-        if os.path.isfile(f"{path}/{file}"):
+        if os.path.isfile(prompt_file):
             try:
-                with open(f"{path}/{file}", "r") as f:
+                with open(prompt_file, "r") as f:
                     json.load(f)
                     f.close()
 
@@ -63,7 +64,7 @@ def input_file_verification(file: str) -> str:
             return "Input files and directory present!"
 
     except Exception as e:
-        return f"\033[1;31mUnexpected error!\n-> {e}\033[0m"
+        raise f"\033[1;31mUnexpected error!\n-> {e}\033[0m"
     return ""
 
 

@@ -1,6 +1,7 @@
-import argparse
 from src.parser.file_parser import \
     input_file_verification, output_file_verification
+
+import argparse
 
 
 def arg_parse() -> argparse.Namespace:
