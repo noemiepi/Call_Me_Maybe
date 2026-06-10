@@ -95,17 +95,6 @@ class Vocabulary(BaseModel):
           -> Any
         """
         candidates: list[Any] = []
-        lowered = prompt.lower()
-
-        if "numbers" in lowered:
-            source = re.search(r'"([^"]*)"', prompt)
-            if source:
-                return [source.group(1), "numbers", "NUMBERS"]
-
-        if "vowels" in lowered:
-            source = re.search(r"'([^']*)'", prompt)
-            if source:
-                return [source.group(1), "vowels", "*"]
 
         # Searches the name after the word greet and adds it to the list
         greeting: list[Any] = self._greet_pattern.findall(prompt)
@@ -120,5 +109,13 @@ class Vocabulary(BaseModel):
         for value in quoted:
             if value not in candidates:
                 candidates.append(value.strip("?.,!'\""))
+
+        if "numbers" in prompt:
+            candidates.append("numbers")
+            candidates.append("NUMBERS")
+
+        if "vowels" in prompt:
+            candidates.append("vowels")
+            candidates.append("asterisks")
 
         return candidates

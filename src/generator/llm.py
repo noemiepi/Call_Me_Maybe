@@ -81,38 +81,42 @@ class Call_Me_Maybe(BaseModel):
         """
         function_param: dict[str, Any] = {}
         output_result: dict[str, Any] = {}
+        test_prompt: str = ""
+        parameters: str = ""
 
         # Starts the timer
         start: float = time.time()
 
         # Prompt
-        if prompt == "" or prompt is None:
-            output_result['prompt'] = prompt
-            output_result['name'] = "No function"
-            output_result['parameters'] = "No parameters"
-            print("Empty prompt")
-            return output_result
+        # test_prompt == prompt.strip(" ")
+        # if test_prompt == "" or test_prompt is None:
+        #     output_result['prompt'] = prompt
+        #     output_result['name'] = "No function"
+        #     output_result['parameters'] = "No parameters"
+        #     print("Empty prompt")
+        #     return output_result
         output_result['prompt'] = prompt
         print(f"{prompt}\n")
 
         # Prompt for the llm
-        llm_prompt = ("You are a function calling assistant \n"
-        "Your task: given a user request, output a JSON object selecting\n"
-        "the right function or fill its arguments.\n\n"
-        "Examples:\n"
-        "- User request: Replace all vowels in 'Programming is fun' "
-        "with asterisks\n"
-        "- Output: {'name': 'fn_substitute_string_with_regex', "
+        llm_prompt = ("You are an function calling assistant.\n"
+        "Your task: given a user request, respond by either selecting "
+        "the right function or filling its arguments.\n\n"
+        "Example:\n"
+        "- User request: Replace all vowels in 'Programming is fun' with "
+        "asterisks\n"
+        "  Output: {'name': 'fn_substitute_string_with_regex', "
         "'parameters': {'source_string': 'Programming is fun', "
-        "'regex': 'vowels', 'replacement': 'asterisks'}\n\n"
+        "'regex': 'vowels', 'replacement': 'asterisks'}}\n\n"
         "Available functions:\n")
         for func in self._func_dict:
-            llm_prompt += f"- {func['name']}: {func['description']}"
+            llm_prompt += f"\n- {func['name']}: {func['description']}"
             for p_name, p_type in func['parameters'].items():
-                llm_prompt += (f"   {p_name} ({p_type['type']})")
-        llm_prompt += f"\n\nUser request: {prompt}"
+                llm_prompt += (f"    {p_name} ({p_type['type']})")
+        llm_prompt += (f"\n\nUser request: {prompt}, "
+        "follow the example and respond.")
 
-    # ------ Function name ---------------------------------------
+    # ------ Function's name -------------------------------------
 
         # State of the machine
         state: State = State.FUNCTION
@@ -124,7 +128,7 @@ class Call_Me_Maybe(BaseModel):
         # Visualization
         print(f"-> Function: {function}")
 
-    # ------ Function parameters ---------------------------------
+    # ------ Function's parameters -------------------------------
 
         # Reunite candidates
         int_candidates = self._vocab.find_int_parameters(prompt)
@@ -142,8 +146,12 @@ class Call_Me_Maybe(BaseModel):
 
         # Putting the parameters inside a dictionnary instead of a string
         try:
-            parameters = dict(item.split(": ", 1) for item in
+            dict_form = dict(item.split(": ", 1) for item in
                               matching_parameters.split(", "))
+            parameters = "{"
+            parameters += f"{matching_parameters}"
+            parameters += "}"
+
 
             if len(parameters) > 0:
                 function_param = parameters
@@ -300,7 +308,7 @@ class Call_Me_Maybe(BaseModel):
                 # resets the token and output
                 if state == State.PARAMETER or state == State.FINAL:
                     if new_par:
-                        print(f"new_par-> {new_par}")
+                        print(f'        - {new_par}')
                         filled_par += new_par
                         gen_output = ""
                         current_token = []
@@ -343,14 +351,14 @@ class Call_Me_Maybe(BaseModel):
             par_name = par_list[i]
             par_type = par_list[i + 1]
 
-            new_par += f"{par_name}: "
+            new_par += f"'{par_name}': "
 
             if par_type == "string":
                 if str_cand is not None and gen_output not in str_cand:
                     state = State.INCOMPLETE_PARAMETER
                 else:
                     if len(par_list) > 2:
-                        new_par += f"{gen_output}, "
+                        new_par += f"'{gen_output}', "
                         for candidate in str_cand:
                             if candidate == gen_output:
                                 break
@@ -360,12 +368,12 @@ class Call_Me_Maybe(BaseModel):
                         par_list.pop(0)
                         state = State.PARAMETER
                     else:
-                        new_par += gen_output
+                        new_par += f"'{gen_output}'"
                         state = State.FINAL
 
             if par_type == "integer":
                 if nb_cand is not None and gen_output not in nb_cand:
-                    state = State.PARAMETER
+                    state = State.INCOMPLETE_PARAMETER
                 else:
                     if len(par_list) > 2:
                         new_par += f"{int(gen_output)}, "
