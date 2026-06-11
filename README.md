@@ -35,7 +35,7 @@ uv run python -m src [--functions_definition <path_to_function_definition_file>]
 
 Here is the same template with the default parameters:
 ``` bash
-uv run python -m src --functions_definition data/input/functions_definition.json --input data/input/function_calling_tests.json --output data/output/function_calls.json
+uv run python -m src --functions_definition data/input/functions_definition.json --input data/input/function_calling_tests.json --output data/output/function_calling_results.json
 ```
 
 ## Explanation and justification
@@ -59,11 +59,14 @@ It is composed of four state:
 *Discuss accuracy, speed, and reliability of your solution*
 
 ### Challenges faced
-- Correctly find the desired function, mostly with `fn_substitute_string_with_regex`.<br>
+During this project, I faced a few difficulties like:
+- Correctly finding the desired function, mostly with `fn_substitute_string_with_regex`.<br>
 I managed to solve the problem by modifying the prompt given to the llm.
 
 - Find and complete every parameters of a function when it had more than one.<br>
 (Still working on it)
+
+- Correctly find the parameters.
 
 *Document difficulties encountered and how you solved them*
 
@@ -71,7 +74,24 @@ I managed to solve the problem by modifying the prompt given to the llm.
 *Describe how you validated your implementation*
 
 ### Example usage
-*Provide clear examples of running your program*
+After running one of the commands from the instruction section above, the program will display this:
+<img src="assets/cmm_start.gif" />
+
+The program will go through every prompt inside the `function_calling_test.json` that are presented like below:
+```json
+  {
+    "prompt": "What is the sum of 2 and 3?"
+  }
+```
+
+The program finds the best matching function defined in `functions_definition.json` and complete the missing parameters. The complete answer is then written in `function_calling_results.json`, the output file:
+```json
+    {
+        "prompt": "What is the sum of 2 and 3?",
+        "name": "fn_add_numbers",
+        "parameters": "{'a': 2.0, 'b': 3.0}"
+    }
+```
 
 
 ## Resources

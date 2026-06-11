@@ -1,4 +1,4 @@
-from llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model  # type: ignore
 
 from src.generator.vocabulary import Vocabulary
 from src.generator.state_machine import State
@@ -7,6 +7,7 @@ from pydantic import BaseModel, PrivateAttr
 from typing import Any
 
 import numpy as np
+import numpy.typing as npy
 import time
 
 
@@ -18,14 +19,14 @@ class Call_Me_Maybe(BaseModel):
     Attributes:
       - model_post_init(self, context: Any | None) -> None
       - generated_answer(self, prompt: str) -> dict[str, Any]
-      - generate(self, prompt: str, state: State,
-                 function: str | None = None) -> str
+      - generate(self, prompt: str, state: State, function: str | None = None,
+                 nb_cand: list[str] = [], str_cand: list[str] = []) -> str
+      - change_state(self, gen_output: str, function: str | None,
+                     par_list: list[str], nb_cand: list[str],
+                     str_cand: list[str],
+                     state: State) -> tuple[State, Any, Any, Any, Any]
       - _valid_token(self, par_type: str, nb_cand: list[str] | None,
                      str_cand: list[str] | None, gen_output: str) -> list[int]
-      - change_state(self, gen_output: str, function: str | None,
-                     par_list: list[str], nb_cand: list[str] | None,
-                     str_cand: list[str] | None,
-                     state: State) -> tuple[State, Any]
     """
     # Class
     _model: Small_LLM_Model = PrivateAttr()
@@ -79,8 +80,8 @@ class Call_Me_Maybe(BaseModel):
         Return
           -> dict[str, Any]
         """
-        function_param: dict[str, Any] = {}
         output_result: dict[str, Any] = {}
+        function_param: str = ""
         test_prompt: str = ""
         parameters: str = ""
 
@@ -88,33 +89,33 @@ class Call_Me_Maybe(BaseModel):
         start: float = time.time()
 
         # Prompt
-        # test_prompt == prompt.strip(" ")
-        # if test_prompt == "" or test_prompt is None:
-        #     output_result['prompt'] = prompt
-        #     output_result['name'] = "No function"
-        #     output_result['parameters'] = "No parameters"
-        #     print("Empty prompt")
-        #     return output_result
+        test_prompt = prompt.strip(" ")
+        if test_prompt == "" or test_prompt is None:
+            output_result['prompt'] = prompt
+            output_result['name'] = "No function"
+            output_result['parameters'] = "No parameters"
+            print("Empty prompt")
+            return output_result
         output_result['prompt'] = prompt
         print(f"{prompt}\n")
 
         # Prompt for the llm
         llm_prompt = ("You are an function calling assistant.\n"
-        "Your task: given a user request, respond by either selecting "
-        "the right function or filling its arguments.\n\n"
-        "Example:\n"
-        "- User request: Replace all vowels in 'Programming is fun' with "
-        "asterisks\n"
-        "  Output: {'name': 'fn_substitute_string_with_regex', "
-        "'parameters': {'source_string': 'Programming is fun', "
-        "'regex': 'vowels', 'replacement': 'asterisks'}}\n\n"
-        "Available functions:\n")
+                      "Your task: given a user request, respond by either "
+                      "selecting the right function or filling its arguments."
+                      "\n\nExample:\n"
+                      "- User request: Replace all vowels in 'Programming is "
+                      "fun' with asterisks\n"
+                      "  Output: {'name': 'fn_substitute_string_with_regex', "
+                      "'parameters': {'source_string': 'Programming is fun', "
+                      "'regex': 'vowels', 'replacement': 'asterisks'}}\n\n"
+                      "Available functions:\n")
         for func in self._func_dict:
             llm_prompt += f"\n- {func['name']}: {func['description']}"
             for p_name, p_type in func['parameters'].items():
                 llm_prompt += (f"    {p_name} ({p_type['type']})")
         llm_prompt += (f"\n\nUser request: {prompt}, "
-        "follow the example and respond.")
+                       "follow the example and respond.")
 
     # ------ Function's name -------------------------------------
 
@@ -146,12 +147,12 @@ class Call_Me_Maybe(BaseModel):
 
         # Putting the parameters inside a dictionnary instead of a string
         try:
-            dict_form = dict(item.split(": ", 1) for item in
-                              matching_parameters.split(", "))
+            dict(item.split(": ", 1) for item in
+                 matching_parameters.split(", "))
+
             parameters = "{"
             parameters += f"{matching_parameters}"
             parameters += "}"
-
 
             if len(parameters) > 0:
                 function_param = parameters
@@ -276,8 +277,8 @@ class Call_Me_Maybe(BaseModel):
                     print("No valid token")
                     break
 
-                logits_masked: np.NDArray[Any] = np.full_like(logits, -np.inf,
-                                                              dtype=float)
+                logits_masked: npy.NDArray[Any] = np.full_like(logits, -np.inf,
+                                                               dtype=float)
                 for token_id in valid_tokens:
                     logits_masked[token_id] = logits[token_id]
 
@@ -299,6 +300,8 @@ class Call_Me_Maybe(BaseModel):
 
                 gen_output += clean_string
 
+                # Changes the state of the machine depending
+                # on what was decoded
                 state, new_par, par_list, nb_cand, \
                     str_cand = self.change_state(gen_output, function,
                                                  par_list, nb_cand,
@@ -308,7 +311,6 @@ class Call_Me_Maybe(BaseModel):
                 # resets the token and output
                 if state == State.PARAMETER or state == State.FINAL:
                     if new_par:
-                        print(f'        - {new_par}')
                         filled_par += new_par
                         gen_output = ""
                         current_token = []
@@ -326,10 +328,10 @@ class Call_Me_Maybe(BaseModel):
         Parameters:
           - gen_ouput: str
           - function: str
-          - filled_par: dict[str, Any]
           - par_list: list[str]
           - nb_cand: list[str]
           - str_cand: list[str]
+          - state: State
 
         Return
           -> tuple[State, Any, Any, Any, Any]

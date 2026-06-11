@@ -9,8 +9,8 @@ class Output(BaseModel):
     the function's name and it's parameters.
 
     Attributes:
-      - join_results(self, prompt: str, gen_output: dict[str, Any]) -> None
-      - write_output(self) -> None
+      - join_results(self, gen_output: dict[str, Any]) -> None
+      - write_output(self, file_path: str) -> None
     """
     result: list[Any] = []
 
@@ -28,18 +28,19 @@ class Output(BaseModel):
         """
         self.result.append(gen_output)
 
-    def write_output(self) -> None:
+    def write_output(self, file_path: str) -> None:
         """
         Taking the class object (result), it will write it's content inside
         a .json file that is either created if non-existent or overwritten.
 
+        Parameter:
+          - file_path: str
+
         Return
           -> None
         """
-        output_path = "data/output/function_calling_results.json"
-
         try:
-            with open(output_path, 'w') as f:
+            with open(file_path, 'w') as f:
                 f.write(json.dumps(self.result, indent=4))
 
         except Exception as e:

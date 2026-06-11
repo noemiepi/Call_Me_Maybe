@@ -10,11 +10,11 @@ class Vocabulary(BaseModel):
     This class will will take every function from the input .json file
     and store them inside a class object dictionnary to be called.
 
-    Attribute:
+    Attributes:
       - get_id_to_token_vocab(self, path: str) -> dict[int, str]
-      - _create_function_list(self) -> list[dict[str, str]]
-      - find_int_parameters(self, prompt: str) -> list[Any]:
-      - find_str_parameters(self, prompt: str) -> list[Any]:
+      - _create_function_list(self) -> list[dict[str, Any]]
+      - find_int_parameters(self, prompt: str) -> list[Any]
+      - find_str_parameters(self, prompt: str) -> list[Any]
     """
     _vocab_list: list[dict[str, Any]] = PrivateAttr()
 
@@ -83,7 +83,7 @@ class Vocabulary(BaseModel):
         """
         return self._nb_pattern.findall(prompt)
 
-    def find_str_parameters(self, prompt: str) -> Any:
+    def find_str_parameters(self, prompt: str) -> list[Any]:
         """
         It does a first search through the prompt to
         find the type string parameters
