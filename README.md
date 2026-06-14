@@ -83,7 +83,7 @@ flowchart TD
     D --> E(Logits)
     E --> F(Token Selection)
     F -->|Loops until the generation is complete| B
-    F --> G(Finish)
+    F --> G(End)
 ```
 
 ### Constrained Decoding
@@ -202,8 +202,6 @@ Overall, the llm reacts well to every test and a few modications were made to ac
 ### Notions:
 #### Parsing
 - https://docs.python.org/3/library/argparse.html
-
-- https://www.tutorialspoint.com/article/How-to-change-the-permission-of-a-file-using-Python
 
 #### JSON Files
 - https://docs.python.org/3/library/json.html#encoders-and-decoders
