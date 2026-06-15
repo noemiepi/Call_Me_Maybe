@@ -15,8 +15,8 @@ def arg_parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     count = 0
-    for path in os.listdir("data/input"):
-        if os.path.isfile(os.path.join("data/input", path)):
+    for path in os.listdir("data/input/"):
+        if os.path.isfile(os.path.join("data/input/", path)):
             count += 1
 
     if count < 2:
