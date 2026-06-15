@@ -22,12 +22,14 @@ class Vocabulary(BaseModel):
     _nb_pattern: Pattern[Any] = PrivateAttr()
     _quote_pattern: Pattern[Any] = PrivateAttr()
     _greet_pattern: Pattern[Any] = PrivateAttr()
+    _after_double_pattern: Pattern[Any] = PrivateAttr()
 
     def __init__(self) -> None:
         # Pattern
         self._nb_pattern = re.compile(r"-?\d+(?:\.\d+)?")
         self._quote_pattern = re.compile(r"'[^']*'|\"[^\"]*\"")
         self._greet_pattern = re.compile(r'\b(?:greet|Greet|GREET)\s+(\w+)')
+        self._after_double_pattern = re.compile(r'\b(?::)\s+(.+)')
 
     def get_id_to_token_vocab(self, path: str) -> dict[int, str]:
         """
@@ -109,6 +111,14 @@ class Vocabulary(BaseModel):
         for value in quoted:
             if value not in candidates:
                 candidates.append(value.strip("?.,!'\""))
+
+        # Searches the informations after a double points
+        # and adds it to the list
+        after_double: list[Any] = self._after_double_pattern.findall(prompt)
+
+        for value in after_double:
+            if value not in candidates:
+                candidates.append(value)
 
         if "numbers" in prompt:
             candidates.append("numbers")

@@ -81,16 +81,16 @@ class Call_Me_Maybe(BaseModel):
           -> dict[str, Any]
         """
         output_result: dict[str, Any] = {}
-        function_param: str = ""
-        test_prompt: str = ""
-        parameters: str = ""
+        function_param: dict[str, Any] = {}
+        is_valid_prompt: str = ""
+        parameters: dict[str, Any] = {}
 
         # Starts the timer
         start: float = time.time()
 
         # Prompt
-        test_prompt = prompt.strip(" ")
-        if test_prompt == "" or test_prompt is None:
+        is_valid_prompt = prompt.strip(" ")
+        if is_valid_prompt == "" or is_valid_prompt is None:
             output_result['prompt'] = prompt
             output_result['name'] = "No function"
             output_result['parameters'] = "No parameters"
@@ -147,22 +147,29 @@ class Call_Me_Maybe(BaseModel):
 
         # Putting the parameters inside a dictionnary instead of a string
         try:
-            dict(item.split(": ", 1) for item in
-                 matching_parameters.split(", "))
+            parameters = dict(item.split(": ", 1) for item in
+                              matching_parameters.split(", "))
 
-            parameters = "{"
-            parameters += f"{matching_parameters}"
-            parameters += "}"
-
-            if len(parameters) > 0:
-                function_param = parameters
+            for func in self._func_dict:
+                if func['name'] == function:
+                    for p_name, p_type in func['parameters'].items():
+                        for type, par_type in p_type.items():
+                            if len(parameters) > 0:
+                                for k, v in parameters.items():
+                                    try:
+                                        if par_type == "integer":
+                                            function_param.update({k: int(v)})
+                                        if par_type == "number":
+                                            function_param.update(
+                                                {k: float(v)})
+                                        else:
+                                            function_param.update({k: v})
+                                    except ValueError:
+                                        function_param.update({k: v})
 
                 output_result['parameters'] = function_param
 
-            else:
-                raise ValueError
-
-        except ValueError:
+        except Exception:
             output_result['parameters'] = matching_parameters
 
         # Visualization
@@ -353,14 +360,14 @@ class Call_Me_Maybe(BaseModel):
             par_name = par_list[i]
             par_type = par_list[i + 1]
 
-            new_par += f"'{par_name}': "
+            new_par += f"{par_name}: "
 
             if par_type == "string":
                 if str_cand is not None and gen_output not in str_cand:
                     state = State.INCOMPLETE_PARAMETER
                 else:
                     if len(par_list) > 2:
-                        new_par += f"'{gen_output}', "
+                        new_par += f"{gen_output}, "
                         for candidate in str_cand:
                             if candidate == gen_output:
                                 break
@@ -370,7 +377,7 @@ class Call_Me_Maybe(BaseModel):
                         par_list.pop(0)
                         state = State.PARAMETER
                     else:
-                        new_par += f"'{gen_output}'"
+                        new_par += f"{gen_output}"
                         state = State.FINAL
 
             if par_type == "integer":

@@ -1,6 +1,7 @@
 from src.parser.file_parser import valid_input_check, valid_output_check
 
 import argparse
+import os
 
 
 def arg_parse() -> argparse.Namespace:
@@ -12,6 +13,14 @@ def arg_parse() -> argparse.Namespace:
       -> argparse.Namespace
     """
     parser = argparse.ArgumentParser()
+
+    count = 0
+    for path in os.listdir("data/input"):
+        if os.path.isfile(os.path.join("data/input", path)):
+            count += 1
+
+    if count < 2:
+        raise ValueError("Missing input file(s)!")
 
     parser.add_argument("-f", "--functions_definition",
                         default="data/input/functions_definition.json",
