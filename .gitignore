@@ -1,0 +1,16 @@
+# ------------------- #
+#    Output Folder    #
+# ------------------- #
+data/output/
+
+# ------------------- #
+#     Cache Files     #
+# ------------------- #
+__pycache__/
+.mypy_cache
+poetry.lock
+
+# ------------------- #
+# Virtual Environment #
+# ------------------- #
+.venv/
