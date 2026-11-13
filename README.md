@@ -1,9 +1,26 @@
 <div align="center">
-    <i>This project has been created as part of the 42 curriculum by npillet</i>
     <h1>Call Me Maybe</h1>
     <h3>Introduction to function calling in LLMs</h3>
+    <i>This project has been created as part of the 42 curriculum by npillet</i>
 </div>
 
+## Table of Contents
+- [Description](#description)
+- [Instructions](#instructions)
+    - [Example Usage](#example-usage)
+- [Algorithm Exlpanation](#algorithm-exlpanation)
+    - [Constrained Decoding](#constrained-decoding)
+    - [State-Machine](#state-machine)
+    - [Other Precautions](#other-precautions)
+    - [Project's Architecture](#projects-architecture)
+- [Design Decisions](#design-decisions)
+- [Performance Analysis](#performance-analysis)
+    - [Accuracy](#accuracy)
+    - [Speed](#speed)
+    - [Reliability](#reliability)
+- [Challenges Faced](#challenges-faced)
+- [Testing Strategy](#testing-strategy)
+- [Resources](#resources)
 
 ## Description
 A **Large Language Models** (**LLM**) is a type of AI program that is capable of generating text. They are trained on large databases and generate their answers to the user prompt using this knowledge.
@@ -14,7 +31,6 @@ It will reunite the name of the function needed to answer the prompt and extract
 The challenge here will be the use of a small language model (0.6B). These models are notoriously unreliable at generating a structure output, they succeed about 30% of the time to generate a valid JSON.<br>
 Our objective is to have a +99% reliability with that same kind of model.<br>
 We can achieve this with **constrained decoding**. It is a technique that guides the model's output token-by-token to guarantee a valid structure, without relying solely on prompting.
-
 
 ## Instructions
 With these commands, once entered inside the terminal, the program will be able to run.
@@ -70,7 +86,6 @@ The complete answer is then written in `function_calling_results.json`, the outp
         "parameters": "{'a': 2.0, 'b': 3.0}"
     }
 ```
-
 
 ## Algorithm Exlpanation
 To better understand the algorithm, we will first see what the generation pipeline is.
@@ -155,7 +170,6 @@ I pre-selected the parameters that can be found inside the prompt to find them m
 
 I chose to generate only the function and the parameters' name and values instead of generating the entire JSON file so the generation time is reduced and I avoid formatting-related issues.
 
-
 ## Performance Analysis
 ### Accuracy
 When processing the eleven original prompts, the program was able to:
@@ -170,7 +184,6 @@ Something else that inflences the generation time is the number of parameters to
 ### Reliability
 Generally, the llm could find the functions of other prompts pretty accurately. However, it has more difficulties finding parameters, especially in the correct order.
 
-
 ## Challenges Faced
 During this project, I faced a few difficulties.<br>
 
@@ -184,7 +197,6 @@ It still didn't work then and therefore I asked Claude for assistance. A clearer
 Correctly find the parameters and put them in the right order.
 - I found how to almost completely solve the issue by modifying the prompt given to the llm.
 
-
 ## Testing Strategy
 The first test was finding the functions of the **original prompts** to see if the program was correctly working. <br>
 
@@ -197,25 +209,19 @@ Finally, **edge case**'s prompt and new functions were given to see what the llm
 
 Overall, the llm reacts well to every test and a few modications were made to accommodate some cases like the empty prompt.
 
-
 ## Resources
-### Notions:
-#### Parsing
-- https://docs.python.org/3/library/argparse.html
+### Notions
+- [argparse](https://docs.python.org/3/library/argparse.html)
 
-#### JSON Files
-- https://docs.python.org/3/library/json.html#encoders-and-decoders
+- [JSON Files](https://docs.python.org/3/library/json.html#encoders-and-decoders)
 
-#### AI Model
-- https://huggingface.co/Qwen/Qwen3-0.6B
+- [AI Model](https://huggingface.co/Qwen/Qwen3-0.6B)
 
-#### LLM State-Machine
-- https://github.com/MLConvexAI/LLM-State-Machine
+- [LLM State-Machine](https://github.com/MLConvexAI/LLM-State-Machine)
 
-#### REGEX
-- https://medium.com/@victoriousjvictor/understanding-regular-expressions-regex-e1c048f5aa6c
+- [REGEX](https://medium.com/@victoriousjvictor/understanding-regular-expressions-regex-e1c048f5aa6c)
 
-### GitHub:
+### GitHub
 - [Overtekk](https://github.com/Overtekk/Call_Me_Maybe)
 
 - [Flipsbone](https://github.com/Flipsbone/Call-Me-Maybe-42)
@@ -228,3 +234,11 @@ Overall, the llm reacts well to every test and a few modications were made to ac
 
 ### AI Usage:
 During this project, AI was used to correctly put in place a way to find more than one parameter.
+
+<br>
+<hr>
+<br>
+
+<div align="center">
+    <img src="assets/footer.png" />
+</div>
